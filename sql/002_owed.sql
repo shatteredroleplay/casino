@@ -1,1 +1,0 @@
-ALTER TABLE `casino_players` ADD COLUMN `owed` BIGINT NOT NULL DEFAULT 0 AFTER `wallet`;
