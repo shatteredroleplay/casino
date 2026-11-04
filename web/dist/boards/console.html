@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    :root { --bg: #0b0e13; --surface: #131821; --line: #212936; --text: #f2f4f7; --muted: #8a94a6; --gold: #d6b25e; --mine: var(--gold); --green: #18c37d; }
+    html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Bahnschrift', 'Segoe UI', Arial, sans-serif; font-stretch: 88%; }
+    .abs { position: absolute; box-sizing: border-box; }
+
+    #head { left: 0; top: 0; width: 100%; height: 13%; display: flex; align-items: center; justify-content: space-between; padding: 0 3%; border-bottom: .5vh solid var(--line); }
+    #title { display: flex; align-items: center; font-size: 5vh; font-weight: 700; }
+    #title::before { content: ''; width: .6vw; height: 5vh; margin-right: 1.2vw; background: var(--green); }
+    #status { font-size: 4.4vh; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #bal { font-size: 4vh; color: var(--muted); }
+    #bal b { color: var(--text); }
+
+    .row { display: flex; align-items: center; padding: 0 2%; background: var(--surface); border: .45vh solid var(--line); border-radius: .6vh; }
+    .row.hover { border-color: var(--muted); }
+    .row.sel { border-color: var(--text); background: #1c2330; }
+    .row.mine { box-shadow: inset .8vw 0 0 var(--mine); }
+        .row.win { border-color: var(--green); background: #12261d; }
+    .row.off { opacity: .55; }
+    .no { flex: none; width: 5%; font-size: 4.6vh; font-weight: 700; color: var(--muted); }
+    .silk { flex: none; height: 84%; aspect-ratio: 4 / 3; background: #c7a678; }
+    .name { flex: 1; margin: 0 2.5%; font-size: 5vh; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tag { margin-right: 3%; padding: .4vh 1vw; background: var(--mine); color: #15120a; font-size: 3.4vh; font-weight: 700; white-space: nowrap; }
+    .pos { margin-right: 3%; font-size: 4.4vh; font-weight: 700; color: var(--green); }
+    .odds { font-size: 5.2vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .btn { display: flex; align-items: center; justify-content: center; background: var(--surface); border: .45vh solid var(--line); border-radius: .6vh; font-size: 8vh; font-weight: 600; }
+    .btn.hover { border-color: var(--text); background: #1c2330; }
+    .btn.off { opacity: .35; }
+    #place { background: var(--green); border-color: var(--green); color: #07130d; font-size: 5.6vh; font-weight: 700; }
+    #place.hover { background: #3fe09c; }
+    #amount { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0d11; border: .45vh solid var(--line); border-radius: .6vh; }
+    #amount.hover { border-color: var(--text); }
+    #amount.off { opacity: .55; }
+    #amount b { font-size: 6.4vh; font-variant-numeric: tabular-nums; }
+    #amount span { font-size: 3vh; color: var(--muted); }
+    #amount span::first-letter { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="head" class="abs"><span id="title"></span><span id="status"></span><span id="bal"></span></div>
+<div id="rows"></div>
+<div id="minus" class="abs btn">−</div>
+<div id="amount" class="abs"><b id="bet"></b><span id="payout"></span></div>
+<div id="plus" class="abs btn">+</div>
+<div id="place" class="abs btn"></div>
+<script src="board.js"></script>
+<script src="horse.js"></script>
+<script>
+    let S = null, base = 0
+    document.getElementById('title').textContent = t('track.title')
+    const ORD = t('track.ordinals').split('|')
+    const $ = id => document.getElementById(id)
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    const box = s => `left:${s.x * 100}%;top:${s.y * 100}%;width:${s.w * 100}%;height:${s.h * 100}%`
+    const left = () => Math.max(0, S.timeLeft - (performance.now() - base))
+    const clock = () => {
+        const secs = Math.ceil(left() / 1000)
+        return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
+    }
+    const icon = (h, i) => `<img class="silk" src="${Horse.icon({ coat: Horse.COATS[(S.id + i) % Horse.COATS.length], color: h.color, trim: h.trim, number: i + 1 })}">`
+
+    let shownStatus = null, lastSig = null
+    const status = () => {
+        if (!S) return
+        const text = S.phase === 'betting' ? t('track.closes_in', { time: clock() })
+            : S.phase === 'racing' ? t('track.running')
+            : S.phase === 'result' ? t('track.next_in', { time: clock() }) : t('track.waiting')
+        if (text === shownStatus) return
+        shownStatus = text
+        $('status').textContent = text
+    }
+
+    const render = () => {
+        const open = S.phase === 'betting'
+        const on = i => S.placed ? S.placed[i] || 0 : 0
+        const spots = {}
+        S.spots.forEach(s => { spots[s.id] = s })
+
+        $('rows').innerHTML = S.horses.map((h, i) => {
+            const s = spots['h' + (i + 1)]
+            if (!s) return ''
+            const place = S.order ? S.order.indexOf(i + 1) : -1
+            const mine = on(i) > 0, won = S.phase === 'result' && place === 0
+            const cls = ['abs', 'row']
+            if (open && S.hover === s.id) cls.push('hover')
+            if (mine) cls.push('mine')
+            if (open && S.horse === i + 1) cls.push('sel')
+            if (won) cls.push('win')
+            if (!open && !mine && !won) cls.push('off')
+            const tag = mine ? `<div class="tag">${esc(t('track.on_horse', { amount: fmt(on(i)) }))}</div>` : ''
+            const pos = S.phase === 'result' && place >= 0 && place < 3 ? `<div class="pos">${esc(ORD[place] ?? place + 1)}</div>` : ''
+            return `<div class="${cls.join(' ')}" style="${box(s)}"><div class="no">${i + 1}</div>${icon(h, i)}` +
+                `<div class="name">${esc(h.name)}</div>${pos}${tag}<div class="odds">${esc(h.odds)}</div></div>`
+        }).join('')
+
+        const ready = open && S.horse
+        for (const id of ['minus', 'plus', 'place']) {
+            const el = $(id)
+            el.style.cssText = box(spots[id])
+            el.className = 'abs btn' + (ready && S.hover === id ? ' hover' : '') + (ready ? '' : ' off')
+        }
+        $('place').textContent = S.phase !== 'betting' ? t('track.closed') : !S.horse ? t('track.pick') : on(S.horse - 1) > 0 ? t('track.add') : t('track.place')
+
+        const amount = $('amount')
+        if (spots.amount) amount.style.cssText = box(spots.amount)
+        amount.className = 'abs' + (ready && S.hover === 'amount' ? ' hover' : '') + (ready ? '' : ' off')
+        $('bet').textContent = S.horse ? fmt(S.bet) : '–'
+        $('payout').textContent = !S.horse ? t('track.stake')
+            : S.hover === 'amount' ? t('track.type_amount') : t('track.pays', { amount: fmt(S.payout) })
+        $('bal').innerHTML = t('track.balance', { amount: `<b>${fmt(S.balance)}</b>` })
+        status()
+    }
+
+    window.addEventListener('message', e => {
+        const d = e.data
+        if (!d || !d.spots || !d.horses) return
+        const sig = JSON.stringify(Object.assign({}, d, { timeLeft: undefined }))
+        S = d
+        base = performance.now()
+        if (sig === lastSig) return status()
+        lastSig = sig
+        render()
+    })
+    setInterval(status, 250)
+</script>
+</body>
+</html>

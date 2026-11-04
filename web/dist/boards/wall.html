@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; background: transparent; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<script>
+    const cv = document.getElementById('fx'), c = cv.getContext('2d')
+
+    // the wall texture is rotated in the map, so everything is drawn in a rotated space (W x H) to read upright
+    const opts = new URLSearchParams(location.hash.slice(1))
+    const ROT = Number(opts.get('rot')) || 0, MIRROR = opts.get('mirror') === '1'
+    const SCALE = 0.5, FRAME = 1000 / 30
+    let W = 0, H = 0, PW = 0, PH = 0
+    const resize = () => {
+        PW = cv.width = Math.round(innerWidth * SCALE)
+        PH = cv.height = Math.round(innerHeight * SCALE)
+        W = ROT % 180 ? PH : PW
+        H = ROT % 180 ? PW : PH
+    }
+    const orient = () => {
+        if (ROT === 90) c.setTransform(0, 1, -1, 0, PW, 0)
+        else if (ROT === 180) c.setTransform(-1, 0, 0, -1, PW, PH)
+        else if (ROT === 270) c.setTransform(0, -1, 1, 0, 0, PH)
+        if (MIRROR) { c.translate(W, 0); c.scale(-1, 1) }
+    }
+    addEventListener('resize', resize)
+    resize()
+
+    const rnd = (a, b) => a + Math.random() * (b - a)
+    const GOLD = ['#ffe9a8', '#d8b75a', '#fff6d6', '#f2c94c']
+
+    // gold dust drifting up
+    const dust = Array.from({ length: 140 }, () => ({
+        x: Math.random(), y: Math.random(), r: rnd(.0015, .005), v: rnd(.02, .07), sway: rnd(0, 6.28), tw: rnd(1, 4), col: GOLD[Math.random() * GOLD.length | 0],
+    }))
+
+    // sparkle bursts popping at random spots
+    let sparks = [], burstAt = 0
+    const burst = () => {
+        const x = rnd(.05, .95), y = rnd(.15, .85), n = 26 + (Math.random() * 18 | 0)
+        for (let i = 0; i < n; i++) {
+            const a = Math.PI * 2 * i / n + rnd(-.1, .1), v = rnd(.05, .16)
+            sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: rnd(.9, 1.7), col: GOLD[Math.random() * GOLD.length | 0] })
+        }
+    }
+
+    const SPRITE = 64
+    const sprites = {}
+    for (const col of GOLD) {
+        const s = document.createElement('canvas')
+        s.width = s.height = SPRITE
+        const sc = s.getContext('2d')
+        const g = sc.createRadialGradient(SPRITE / 2, SPRITE / 2, 0, SPRITE / 2, SPRITE / 2, SPRITE / 2)
+        g.addColorStop(0, col)
+        g.addColorStop(1, 'rgba(0,0,0,0)')
+        sc.fillStyle = g
+        sc.fillRect(0, 0, SPRITE, SPRITE)
+        sprites[col] = s
+    }
+
+    const glow = (x, y, r, col) => {
+        c.drawImage(sprites[col], x - r, y - r, r * 2, r * 2)
+    }
+
+    let sweepAt = 0, last = performance.now()
+    const frame = now => {
+        requestAnimationFrame(frame)
+        if (now - last < FRAME - 1) return
+        const dt = Math.min(.05, (now - last) / 1000)
+        last = now
+        c.setTransform(1, 0, 0, 1, 0, 0)
+        c.clearRect(0, 0, PW, PH)
+        orient()
+        c.globalCompositeOperation = 'lighter'
+
+        for (const p of dust) {
+            p.y -= p.v * dt
+            p.sway += dt
+            if (p.y < -.02) { p.y = 1.02; p.x = Math.random() }
+            c.globalAlpha = .35 + .45 * Math.abs(Math.sin(now / 1000 * p.tw + p.sway))
+            glow((p.x + Math.sin(p.sway) * .01) * W, p.y * H, p.r * H * 3, p.col)
+        }
+
+        if (now > burstAt) {
+            burstAt = now + rnd(1800, 4200)
+            burst()
+        }
+        sparks = sparks.filter(s => s.life < s.max)
+        for (const s of sparks) {
+            s.life += dt
+            s.x += s.vx * dt * (H / W)
+            s.y += s.vy * dt
+            s.vy += .05 * dt
+            s.vx *= 1 - .9 * dt
+            c.globalAlpha = Math.max(0, 1 - s.life / s.max)
+            glow(s.x * W, s.y * H, H * .012, s.col)
+        }
+
+        // light sweep every few seconds
+        if (now > sweepAt + 7000) sweepAt = now
+        const sp = (now - sweepAt) / 2200
+        if (sp < 1) {
+            const x = (sp * 1.6 - .3) * W, bw = W * .12
+            const g = c.createLinearGradient(x - bw, 0, x + bw, 0)
+            g.addColorStop(0, 'rgba(255,236,170,0)')
+            g.addColorStop(.5, 'rgba(255,236,170,.28)')
+            g.addColorStop(1, 'rgba(255,236,170,0)')
+            c.globalAlpha = 1
+            c.save()
+            c.transform(1, 0, -.35, 1, H * .17, 0)
+            c.fillStyle = g
+            c.fillRect(x - bw, 0, bw * 2, H)
+            c.restore()
+        }
+
+        c.globalCompositeOperation = 'source-over'
+        c.globalAlpha = 1
+    }
+    requestAnimationFrame(frame)
+</script>
+</body>
+</html>

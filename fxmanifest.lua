@@ -1,0 +1,133 @@
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+name 'casino'
+author 'Edvin'
+description 'Casino: table games, slots, racing, lucky wheel and admin panel'
+version '2.0.0'
+
+dependencies {
+    '/gameBuild:2060',
+    '/onesync',
+    'oxmysql',
+}
+
+shared_scripts {
+    'config/main.lua',
+    'config/economy.lua',
+    'config/locations.lua',
+    'config/atmosphere.lua',
+    'config/games/*.lua',
+    'shared/lib/util.lua',
+    'shared/lib/locale.lua',
+    'shared/lib/format.lua',
+    'shared/engine/*.lua',
+    'bridge/init.lua',
+}
+
+client_scripts {
+    'bridge/framework/custom/client.lua',
+    'bridge/framework/esx/client.lua',
+    'bridge/framework/nd/client.lua',
+    'bridge/framework/ox/client.lua',
+    'bridge/framework/qb/client.lua',
+    'bridge/framework/qbx/client.lua',
+    'bridge/framework/shattered/client.lua',
+    'bridge/framework/standalone/client.lua',
+    'bridge/inventory/codem/client.lua',
+    'bridge/inventory/core/client.lua',
+    'bridge/inventory/custom/client.lua',
+    'bridge/inventory/esx/client.lua',
+    'bridge/inventory/none/client.lua',
+    'bridge/inventory/ox/client.lua',
+    'bridge/inventory/qb/client.lua',
+    'bridge/inventory/qs/client.lua',
+    'bridge/inventory/shattered/client.lua',
+    'bridge/inventory/tgiann/client.lua',
+    'bridge/target/*.lua',
+    'bridge/notify/*.lua',
+    'bridge/resolve.lua',
+    'client/core/rpc.lua',
+    'client/core/nui.lua',
+    'client/core/ui.lua',
+    'client/core/interact.lua',
+    'client/core/player.lua',
+    'client/data/offsets.lua',
+    'client/core/casino.lua',
+    'client/core/zone.lua',
+    'client/core/draw.lua',
+    'client/core/tablegame.lua',
+    'client/core/atmosphere.lua',
+    'client/core/hud.lua',
+    'client/core/settings.lua',
+    'client/core/debug.lua',
+    'client/cashier.lua',
+    'client/rig.lua',
+    'client/games/*.lua',
+    'client/admin.lua',
+}
+
+server_scripts {
+    '@oxmysql/lib/MySQL.lua',
+    'config/server.lua',
+    'bridge/framework/custom/server.lua',
+    'bridge/framework/esx/server.lua',
+    'bridge/framework/nd/server.lua',
+    'bridge/framework/ox/server.lua',
+    'bridge/framework/qb/server.lua',
+    'bridge/framework/qbx/server.lua',
+    'bridge/framework/shattered/server.lua',
+    'bridge/framework/standalone/server.lua',
+    'bridge/inventory/codem/server.lua',
+    'bridge/inventory/core/server.lua',
+    'bridge/inventory/custom/server.lua',
+    'bridge/inventory/esx/server.lua',
+    'bridge/inventory/none/server.lua',
+    'bridge/inventory/ox/server.lua',
+    'bridge/inventory/qb/server.lua',
+    'bridge/inventory/qs/server.lua',
+    'bridge/inventory/shattered/server.lua',
+    'bridge/inventory/tgiann/server.lua',
+    'bridge/vehiclekeys/*.lua',
+    'bridge/society/*.lua',
+    'bridge/logs/*.lua',
+    'bridge/resolve.lua',
+    'server/core/db.lua',
+    'server/core/state.lua',
+    'server/core/settings.lua',
+    'server/core/rpc.lua',
+    'server/core/log.lua',
+    'server/core/notify.lua',
+    'server/core/players.lua',
+    'server/core/wallet.lua',
+    'server/core/perms.lua',
+    'server/core/audit.lua',
+    'server/core/stats.lua',
+    'server/core/rig.lua',
+    'server/core/pool.lua',
+    'server/core/audience.lua',
+    'server/core/tablegame.lua',
+    'server/core/debug.lua',
+    'server/cashier.lua',
+    'server/api.lua',
+    'server/games/*.lua',
+    'server/admin.lua',
+}
+
+ui_page 'web/dist/index.html'
+
+files {
+    'locales/*.json',
+    'web/dist/*.html',
+    'web/dist/**/*',
+}
+
+escrow_ignore {
+    'config/*.lua',
+    'config/games/*.lua',
+    'bridge/*.lua',
+    'bridge/**/*.lua',
+    'locales/*.json',
+    'sql/*.sql',
+}

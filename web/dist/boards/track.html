@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    :root { --bg: #0b0e13; --surface: #131821; --line: #212936; --text: #f2f4f7; --muted: #8a94a6; --accent: #18c37d; --gold: #d6b25e; --mine: var(--gold); --live: #ff3b30; }
+    html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Bahnschrift', 'Segoe UI', Arial, sans-serif; font-stretch: 88%; }
+    #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    /* top bar */
+    header { position: absolute; left: 0; right: 0; top: 0; height: 8vh; z-index: 3; display: flex; align-items: center; padding: 0 2.4vw; background: var(--bg); border-bottom: .2vh solid var(--line); }
+    .logo { display: flex; align-items: center; font-size: 3.5vh; font-weight: 700; }
+    .logo::before { content: ''; width: .5vw; height: 3.4vh; margin-right: .9vw; background: var(--accent); }
+    .race { margin-left: 1.4vw; padding-left: 1.4vw; border-left: .15vh solid var(--line); font-size: 2.6vh; color: var(--muted); }
+    .state { margin-left: auto; display: flex; align-items: center; gap: 1vw; font-size: 2.6vh; color: var(--muted); }
+    .state b { min-width: 5vw; text-align: right; font-size: 4.2vh; font-weight: 600; color: var(--text); }
+    .live { display: none; align-items: center; gap: .6vw; padding: .5vh 1vw; background: var(--live); color: #fff; font-size: 2.4vh; font-weight: 700; }
+    .live::before { content: ''; width: 1.1vh; height: 1.1vh; border-radius: 50%; background: #fff; }
+    body.racing .live { display: flex; }
+    body.racing .state b, body.racing #label { display: none; }
+    #bar { position: absolute; left: 0; top: 8vh; height: .4vh; width: 100%; background: var(--accent); z-index: 3; transform: scaleX(0); transform-origin: left center; }
+
+    section { position: absolute; left: 0; right: 0; top: 8.4vh; bottom: 0; display: none; box-sizing: border-box; }
+    body.betting #board, body.result #podium, body.idle #wait { display: flex; }
+    body.racing #scene, body.racing #hud { display: block; }
+
+    /* tote board and result table */
+    #board, #podium { flex-direction: column; padding: 3vh 2.4vw 3.4vh; }
+    .title { display: flex; align-items: baseline; margin-bottom: 1.6vh; }
+    .title h2 { margin: 0; font-size: 5vh; font-weight: 700; }
+    .title span { margin-left: 1.4vw; font-size: 2.6vh; color: var(--muted); }
+    .cols { display: flex; padding: 0 1.6vw 1vh; font-size: 2.1vh; color: var(--muted); border-bottom: .2vh solid var(--line); }
+    .cols i { font-style: normal; }
+    .cols .c1 { width: 5vw; }
+    .cols .c2 { flex: 1; }
+    .rows { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .row { flex: 1; min-height: 0; display: flex; align-items: center; padding: 0 1.6vw; border-bottom: .15vh solid var(--line); }
+    .row.mine { background: rgba(214, 178, 94, .1); box-shadow: inset .4vw 0 0 var(--mine); }
+    .no { flex: none; width: 5vw; font-size: 4.4vh; font-weight: 700; }
+    .pic { flex: none; height: 78%; aspect-ratio: 4 / 3; background: #c7a678; }
+    .colours { flex: none; width: .7vw; height: 78%; margin-right: 1.6vw; }
+    .nm { flex: 1; min-width: 0; font-size: 4.4vh; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tag { margin-right: 2vw; padding: .5vh .8vw; background: var(--mine); color: #15120a; font-size: 2.2vh; font-weight: 700; }
+    .od { font-size: 5vh; font-weight: 700; }
+    #podium .row.first { flex: 1.5; }
+    #podium .row.first .no, #podium .row.first .nm, #podium .row.first .od { font-size: 6.4vh; }
+    #podium .row.first .no { color: var(--accent); }
+    #podium .row.rest { flex: .6; }
+    #podium .row.rest .no, #podium .row.rest .nm, #podium .row.rest .od { font-size: 3vh; color: var(--muted); font-weight: 600; }
+
+    /* race overlay */
+    #hud { pointer-events: none; }
+    #standings { position: absolute; left: 2.4vw; top: 2.4vh; width: 21vw; background: rgba(11, 14, 19, .9); }
+    #standings div { display: flex; align-items: center; height: 4.8vh; border-bottom: .12vh solid var(--line); font-size: 2.8vh; font-weight: 600; }
+    #standings div:last-child { border-bottom: 0; }
+    #standings .p { flex: none; width: 2.6vw; height: 100%; display: flex; align-items: center; justify-content: center; background: #1a212c; }
+    #standings .n { flex: none; width: 2.4vh; height: 2.4vh; margin: 0 .8vw; display: flex; align-items: center; justify-content: center; font-size: 1.8vh; font-weight: 700; }
+    #standings span { flex: 1; min-width: 0; padding-right: .8vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #standings .me .p { background: var(--mine); color: #15120a; }
+    #standings .me span { color: var(--mine); }
+    #left { position: absolute; right: 2.4vw; top: 2.4vh; padding: 1vh 1.2vw; background: rgba(11, 14, 19, .9); text-align: right; }
+    #left b { display: block; font-size: 4.4vh; font-weight: 700; line-height: 1; }
+    #left i { font-style: normal; font-size: 2vh; color: var(--muted); }
+    #left small { display: block; margin-top: .8vh; padding-top: .8vh; border-top: .12vh solid var(--line); font-size: 2.3vh; font-weight: 600; color: var(--mine); }
+
+    #wait { align-items: center; justify-content: center; font-size: 5vh; font-weight: 600; color: var(--text); }
+</style>
+</head>
+<body class="idle">
+<canvas id="scene"></canvas>
+<header>
+    <div class="logo" id="logo"></div>
+    <div class="race" id="race"></div>
+    <div class="state"><span id="label"></span><b class="num" id="timer"></b><div class="live" id="live"></div></div>
+</header>
+<div id="bar"></div>
+<section id="board"></section>
+<section id="hud"><div id="standings"></div><div id="left"></div></section>
+<section id="podium"></section>
+<section id="wait"></section>
+<script src="board.js"></script>
+<script src="horse.js"></script>
+<script>
+    let S = null, base = 0, total = 1, runners = [], dust = [], cam = null, rankAt = 0
+    const $ = id => document.getElementById(id)
+    const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))
+    const left = () => Math.max(0, S.timeLeft - (performance.now() - base))
+    const labels = { betting: t('track.closes_label'), racing: '', result: t('track.next_label'), idle: '' }
+    document.getElementById('wait').textContent = t('track.starting')
+    document.getElementById('logo').textContent = t('track.title')
+    document.getElementById('live').textContent = t('track.live')
+    const TAU = Math.PI * 2
+    const MINE = getComputedStyle(document.documentElement).getPropertyValue('--mine').trim() || '#d6b25e'
+    const FONT = "'Bahnschrift', 'Segoe UI', Arial, sans-serif"
+
+    const lookOf = i => ({ coat: Horse.COATS[(S.id + i) % Horse.COATS.length], color: S.horses[i].color, trim: S.horses[i].trim, number: i + 1 })
+    // S.mine holds what this player has on each horse
+    const staked = i => S.mine ? S.mine[i] || 0 : 0
+    const row = (i, label, cls) => {
+        const h = S.horses[i], mine = staked(i) > 0
+        return `<div class="row ${cls}${mine ? ' mine' : ''}"><div class="no num">${label}</div><img class="pic" src="${Horse.icon(lookOf(i))}">` +
+            `<div class="colours" style="background:linear-gradient(${h.color} 62%, ${h.trim} 62%)"></div><div class="nm">${esc(h.name)}</div>` +
+            `${mine ? `<div class="tag num">${esc(t('track.your_bet', { amount: fmt(staked(i)) }))}</div>` : ''}<div class="od num">${esc(h.odds)}</div></div>`
+    }
+
+    // race scene
+
+    const cv = $('scene'), c = cv.getContext('2d')
+    let W = 0, H = 0
+    const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight }
+    addEventListener('resize', resize)
+    resize()
+
+    const horseLen = () => W * .13
+    const trackLen = () => horseLen() * 6 * .9 * S.raceTime / 1000
+
+    const distance = (r, elapsed) => {
+        const L = trackLen(), u = elapsed / r.T
+        if (u >= 1) return L + (elapsed - r.T) * L / r.T * .85
+        const v = Math.max(0, u)
+        return L * (v + .088 * v * (1 - v) * (.7 * Math.sin(TAU * r.f1 * v + r.p1) + .3 * Math.sin(TAU * r.f2 * v + r.p2)))
+    }
+
+    const repeat = (offset, step, fn) => {
+        for (let x = -((offset % step) + step) % step - step; x < W + step; x += step) fn(x, Math.floor((offset + x) / step + .5))
+    }
+    const rand = n => {
+        const v = Math.sin(n * 127.1 + 311.7) * 43758.5453
+        return v - Math.floor(v)
+    }
+    const pickOf = (list, n) => list[((n % list.length) + list.length) % list.length]
+    const CROWD = ['#b23a2e', '#2c3e50', '#d9b23a', '#e6e8ea', '#2f6f9f', '#3a8f5c', '#c9772c', '#6d4a8a', '#1f2730', '#8d99a6']
+    const ADS = t('track.ads').split('|').map((text, i) => [text, ['#14283d', '#6e1c27', '#1b4332', '#3d3320'][i % 4]])
+    const CLOUD = [[0, 0, 1], [1.1, .15, .8], [-1.1, .2, .75], [.5, -.45, .8], [2, .3, .55], [-2, .32, .5]]
+
+    // grain of the sand, drawn once and scrolled under the horses
+    const SAND = 512
+    const sand = (() => {
+        const tile = document.createElement('canvas')
+        tile.width = tile.height = SAND
+        const g = tile.getContext('2d')
+        for (let i = 0; i < 9000; i++) {
+            const dark = Math.random() < .55
+            g.fillStyle = dark ? `rgba(84,56,28,${.05 + Math.random() * .16})` : `rgba(255,236,200,${.04 + Math.random() * .14})`
+            const s = 1 + Math.random() * 2.6
+            g.fillRect(Math.random() * SAND, Math.random() * SAND, s * (1 + Math.random() * 2), s)
+        }
+        for (let i = 0; i < 140; i++) {
+            g.fillStyle = `rgba(70,46,22,${.05 + Math.random() * .1})`
+            g.beginPath(); g.ellipse(Math.random() * SAND, Math.random() * SAND, 6 + Math.random() * 10, 2 + Math.random() * 2.5, 0, 0, TAU); g.fill()
+        }
+        return tile
+    })()
+    let sandFill = null
+
+    const drawWorld = (now, L) => {
+        // sky, sun, clouds
+        const sky = c.createLinearGradient(0, 0, 0, H * .48)
+        sky.addColorStop(0, '#4a8ccf')
+        sky.addColorStop(1, '#cfe3f1')
+        c.fillStyle = sky
+        c.fillRect(0, 0, W, H * .48)
+        const sun = c.createRadialGradient(W * .78, H * .2, 0, W * .78, H * .2, H * .36)
+        sun.addColorStop(0, 'rgba(255,244,214,.8)')
+        sun.addColorStop(1, 'rgba(255,244,214,0)')
+        c.fillStyle = sun
+        c.fillRect(0, 0, W, H * .48)
+        c.fillStyle = 'rgba(255,255,255,.85)'
+        repeat(cam * .015 + now * .004, W * .38, (x, n) => {
+            const y = H * (.16 + .09 * rand(n)), s = H * (.032 + .02 * rand(n + 9))
+            for (const [dx, dy, r] of CLOUD) {
+                c.beginPath(); c.ellipse(x + dx * s, y + dy * s, s * r * 1.25, s * r * .8, 0, 0, TAU); c.fill()
+            }
+        })
+
+        // hills and trees
+        c.fillStyle = '#86a9a6'
+        repeat(cam * .03, W * .6, (x, n) => {
+            c.beginPath(); c.ellipse(x + W * .2, H * .48, W * (.3 + .1 * rand(n)), H * (.09 + .05 * rand(n + 3)), 0, Math.PI, TAU); c.fill()
+        })
+        c.fillStyle = '#6f9c68'
+        repeat(cam * .06, W * .45, (x, n) => {
+            c.beginPath(); c.ellipse(x, H * .48, W * (.26 + .08 * rand(n + 5)), H * (.05 + .035 * rand(n + 7)), 0, Math.PI, TAU); c.fill()
+        })
+        repeat(cam * .12, W * .05, (x, n) => {
+            const s = H * (.03 + .022 * rand(n)), y = H * .48
+            c.fillStyle = '#4a3524'
+            c.fillRect(x - s * .1, y - s * .9, s * .2, s * .9)
+            c.fillStyle = '#2f5d36'
+            c.beginPath(); c.arc(x, y - s * 1.3, s * .85, 0, TAU); c.fill()
+            c.fillStyle = '#3d7443'
+            c.beginPath(); c.arc(x - s * .3, y - s * 1.5, s * .55, 0, TAU); c.fill()
+            c.fillStyle = '#4b8750'
+            c.beginPath(); c.arc(x + s * .25, y - s * 1.65, s * .35, 0, TAU); c.fill()
+        })
+
+        // grandstand: tiers of spectators, glass boxes, roof with its shadow, columns and flags
+        repeat(cam * .2, W * 1.7, (x, n) => {
+            const w = W * .78, top = H * .235, base = H * .48
+            c.fillStyle = '#b9bfc8'
+            c.fillRect(x, top + H * .03, w, base - top - H * .03)
+            for (let tier = 0; tier < 5; tier++) {
+                const y = top + H * (.064 + tier * .036)
+                c.fillStyle = '#2f3742'
+                c.fillRect(x + w * .01, y, w * .98, H * .028)
+                for (let i = 0; i < 230; i++) {
+                    const seed = n * 31 + tier * 151 + i
+                    if (rand(seed + 5) < .12) continue
+                    c.fillStyle = CROWD[Math.floor(rand(seed) * CROWD.length)]
+                    const px = x + w * (.013 + i * .00424), py = y + H * .008 + Math.sin(now * .006 + i * 1.7 + tier) * H * .0012
+                    c.fillRect(px, py + H * .005, w * .003, H * .012)
+                    c.fillStyle = '#d9b08c'
+                    c.fillRect(px + w * .0006, py, w * .0018, H * .005)
+                }
+            }
+            c.fillStyle = '#8fb6d3'
+            c.fillRect(x + w * .01, top + H * .036, w * .98, H * .022)
+            c.fillStyle = 'rgba(255,255,255,.4)'
+            for (let i = 0; i < 26; i++) c.fillRect(x + w * (.012 + i * .0377), top + H * .036, w * .002, H * .022)
+            const under = c.createLinearGradient(0, top + H * .036, 0, top + H * .1)
+            under.addColorStop(0, 'rgba(0,0,0,.45)')
+            under.addColorStop(1, 'rgba(0,0,0,0)')
+            c.fillStyle = under
+            c.fillRect(x, top + H * .036, w, H * .064)
+            c.fillStyle = '#7d8793'
+            for (let i = 0; i <= 8; i++) c.fillRect(x + w * i / 8 - w * .002, top + H * .03, w * .004, base - top - H * .03)
+            c.fillStyle = '#262c35'
+            c.beginPath(); c.moveTo(x - w * .02, top + H * .036); c.lineTo(x + w * 1.02, top + H * .036); c.lineTo(x + w * 1.035, top); c.lineTo(x - w * .035, top); c.closePath(); c.fill()
+            for (let i = 0; i < 6; i++) {
+                const px = x + w * (.08 + i * .168), py = top - H * .05, wave = Math.sin(now * .008 + i) * H * .004
+                c.fillStyle = '#e8eaee'
+                c.fillRect(px, py, W * .0012, H * .05)
+                c.fillStyle = pickOf(CROWD, i * 3 + n)
+                c.beginPath(); c.moveTo(px, py); c.lineTo(px + W * .016, py + H * .008 + wave); c.lineTo(px, py + H * .018); c.closePath(); c.fill()
+            }
+        })
+
+        // haze over everything in the distance
+        const haze = c.createLinearGradient(0, H * .28, 0, H * .48)
+        haze.addColorStop(0, 'rgba(226,236,244,0)')
+        haze.addColorStop(1, 'rgba(226,236,244,.34)')
+        c.fillStyle = haze
+        c.fillRect(0, H * .28, W, H * .2)
+
+        // infield: mown grass, a hedge and hoardings along the far rail
+        const grass = c.createLinearGradient(0, H * .48, 0, H * .58)
+        grass.addColorStop(0, '#5c9f4c')
+        grass.addColorStop(1, '#3d8537')
+        c.fillStyle = grass
+        c.fillRect(0, H * .48, W, H * .1)
+        c.fillStyle = 'rgba(255,255,255,.07)'
+        repeat(cam * .9, W * .16, x => {
+            c.beginPath(); c.moveTo(x + W * .03, H * .48); c.lineTo(x + W * .1, H * .48); c.lineTo(x + W * .08, H * .58); c.lineTo(x, H * .58); c.closePath(); c.fill()
+        })
+        c.fillStyle = '#2c5a2f'
+        c.fillRect(0, H * .502, W, H * .02)
+        c.fillStyle = '#356b38'
+        repeat(cam * .94, W * .018, (x, n) => { c.beginPath(); c.arc(x, H * .504, H * (.007 + .004 * rand(n)), 0, TAU); c.fill() })
+        c.font = `600 ${H * .022}px ${FONT}`
+        c.textAlign = 'center'
+        c.textBaseline = 'middle'
+        repeat(cam * .97, W * .26, (x, n) => {
+            const ad = pickOf(ADS, n)
+            c.fillStyle = '#d7dadf'
+            c.fillRect(x - W * .001, H * .522, W * .202, H * .044)
+            c.fillStyle = ad[1]
+            c.fillRect(x, H * .524, W * .2, H * .04)
+            c.fillStyle = '#eef0f2'
+            c.fillText(ad[0], x + W * .1, H * .545)
+        })
+
+        // sand track: lighter and flatter far away, grain and harrow lines scrolling with the ground
+        const top = H * .575, depth = H * .425
+        const dirt = c.createLinearGradient(0, top, 0, H)
+        dirt.addColorStop(0, '#c9ab80')
+        dirt.addColorStop(.35, '#b99263')
+        dirt.addColorStop(1, '#9a7246')
+        c.fillStyle = dirt
+        c.fillRect(0, top, W, depth)
+        sandFill = sandFill || c.createPattern(sand, 'repeat')
+        c.fillStyle = sandFill
+        for (const [from, to, squash, speed, alpha] of [[0, .3, .45, .97, .7], [.3, 1, 1, 1, 1]]) {
+            c.save()
+            c.globalAlpha = alpha
+            c.beginPath(); c.rect(0, top + depth * from, W, depth * (to - from)); c.clip()
+            c.translate(-(((cam * speed) % SAND) + SAND) % SAND, top + depth * from)
+            c.scale(1, squash)
+            c.fillRect(0, 0, W + SAND, depth / squash)
+            c.restore()
+        }
+        for (let i = 1; i < 16; i++) {
+            const y = top + depth * (i / 16) ** 1.7
+            c.fillStyle = i % 2 ? 'rgba(70,44,20,.1)' : 'rgba(255,238,205,.08)'
+            c.fillRect(0, y, W, H * (.0015 + .002 * i / 16))
+        }
+
+        // distance posts
+        for (let j = 1; j < 6; j++) {
+            const px = L * j / 6 - cam
+            if (px < -W * .05 || px > W * 1.05) continue
+            c.fillStyle = '#f4f4f4'
+            c.fillRect(px, H * .5, W * .003, H * .07)
+            c.fillStyle = '#c62828'
+            c.fillRect(px - W * .013, H * .486, W * .029, H * .03)
+            c.fillStyle = '#fff'
+            c.font = `700 ${H * .02}px ${FONT}`
+            c.fillText(1200 - j * 200, px + W * .0015, H * .502)
+        }
+
+        // far rail with its shadow on the sand
+        c.fillStyle = 'rgba(60,38,16,.22)'
+        c.fillRect(0, H * .588, W, H * .007)
+        c.fillStyle = '#eef0f1'
+        repeat(cam * .985, W * .045, x => c.fillRect(x, H * .562, W * .0022, H * .03))
+        c.fillStyle = '#ffffff'
+        c.fillRect(0, H * .558, W, H * .0085)
+        c.fillStyle = 'rgba(0,0,0,.16)'
+        c.fillRect(0, H * .5645, W, H * .002)
+
+        // finish: checkered line across the sand and the post
+        const fx = L - cam
+        if (fx > -W * .2 && fx < W * 1.2) {
+            const rows = 14, from = H * .58, to = H * .975
+            const slant = y => fx + W * .012 - W * .03 * (y - from) / (to - from)
+            for (let i = 0; i < rows; i++) {
+                const y0 = from + (to - from) * i / rows, y1 = from + (to - from) * (i + 1) / rows
+                const cw = W * (.006 + .004 * i / rows)
+                for (let j = 0; j < 2; j++) {
+                    c.fillStyle = (i + j) % 2 ? '#16181c' : '#f7f7f7'
+                    c.beginPath(); c.moveTo(slant(y0) + j * cw, y0); c.lineTo(slant(y0) + (j + 1) * cw, y0); c.lineTo(slant(y1) + (j + 1) * cw, y1); c.lineTo(slant(y1) + j * cw, y1); c.closePath(); c.fill()
+                }
+            }
+            for (let i = 0; i < 9; i++) {
+                c.fillStyle = i % 2 ? '#fff' : '#c62828'
+                c.fillRect(fx + W * .013, H * (.3 + i * .03), W * .006, H * .03)
+            }
+            c.fillStyle = '#c62828'
+            c.beginPath(); c.arc(fx + W * .016, H * .285, H * .032, 0, TAU); c.fill()
+            c.fillStyle = '#fff'
+            c.font = `700 ${H * .023}px ${FONT}`
+            c.fillText(t('track.finish'), fx + W * .016, H * .287)
+        }
+    }
+
+    const drawScene = now => {
+        const elapsed = S.raceTime - left(), L = trackLen()
+        let lead = 0
+        for (const r of runners) {
+            r.x = distance(r, elapsed)
+            lead = Math.max(lead, r.x)
+        }
+        cam = Math.min(Math.max(lead - W * .62, -W * .22), L - W * .78)
+        drawWorld(now, L)
+
+        // horses, far lane first; the ones you bet on get a ring on the ground
+        const unit = horseLen() / 250, ph = now * .0145
+        runners.forEach((r, k) => {
+            const x = r.x - cam, y = H * (.645 + k * .06), s = unit * (.8 + k * .05)
+            if (now > r.dustAt) {
+                r.dustAt = now + 55
+                dust.push({ x: r.x - 50 * s, y: y - 6 * s, vx: -(.04 + Math.random() * .1) * s, vy: -(.015 + Math.random() * .05) * s, born: now, size: (6 + Math.random() * 7) * s })
+            }
+            if (r.mine) {
+                c.strokeStyle = MINE
+                c.lineWidth = 5 * s
+                c.beginPath(); c.ellipse(x + 6 * s, y + 3 * s, 120 * s, 15 * s, 0, 0, TAU); c.stroke()
+            }
+            Horse.draw(c, x, y, s, r.look, elapsed > 0 ? ph + r.stride : null)
+        })
+
+        // dust hanging behind the hooves
+        dust = dust.filter(p => now - p.born < 700)
+        for (const p of dust) {
+            const age = now - p.born, px = p.x + p.vx * age - cam, py = p.y + p.vy * age, r = p.size * (1 + age / 200)
+            const puff = c.createRadialGradient(px, py, 0, px, py, r)
+            puff.addColorStop(0, `rgba(222,200,160,${.34 * (1 - age / 700)})`)
+            puff.addColorStop(1, 'rgba(222,200,160,0)')
+            c.fillStyle = puff
+            c.fillRect(px - r, py - r, r * 2, r * 2)
+        }
+
+        // near rail, blurred a little by its speed, and the grass in front of it
+        c.fillStyle = '#3d8537'
+        c.fillRect(0, H * .982, W, H * .02)
+        c.fillStyle = 'rgba(60,38,16,.2)'
+        c.fillRect(0, H * .972, W, H * .01)
+        repeat(cam * 1.12, W * .085, x => {
+            const post = c.createLinearGradient(x - W * .008, 0, x + W * .012, 0)
+            post.addColorStop(0, 'rgba(240,242,243,0)')
+            post.addColorStop(.5, 'rgba(240,242,243,.95)')
+            post.addColorStop(1, 'rgba(240,242,243,0)')
+            c.fillStyle = post
+            c.fillRect(x - W * .008, H * .952, W * .02, H * .05)
+        })
+        c.fillStyle = '#ffffff'
+        c.fillRect(0, H * .944, W, H * .013)
+        c.fillStyle = 'rgba(0,0,0,.16)'
+        c.fillRect(0, H * .954, W, H * .003)
+
+        // slightly darker corners, like a broadcast camera
+        const shade = c.createRadialGradient(W / 2, H * .6, H * .5, W / 2, H * .6, W * .75)
+        shade.addColorStop(0, 'rgba(0,0,0,0)')
+        shade.addColorStop(1, 'rgba(0,0,0,.28)')
+        c.fillStyle = shade
+        c.fillRect(0, 0, W, H)
+
+        // marker above your horses, drawn last so nothing covers it
+        runners.forEach((r, k) => {
+            if (!r.mine) return
+            const s = unit * (.8 + k * .05), x = r.x - cam + 30 * s
+            const y = H * (.645 + k * .06) - 212 * s + Math.sin(now * .008) * H * .005
+            c.font = `700 ${H * .024}px ${FONT}`
+            c.textAlign = 'center'
+            c.textBaseline = 'middle'
+            const w = c.measureText(t('track.your_horse_tag')).width + H * .028
+            c.fillStyle = MINE
+            c.fillRect(x - w / 2, y - H * .046, w, H * .036)
+            c.beginPath(); c.moveTo(x - H * .012, y - H * .011); c.lineTo(x + H * .012, y - H * .011); c.lineTo(x, y + H * .006); c.closePath(); c.fill()
+            c.fillStyle = '#15120a'
+            c.fillText(t('track.your_horse_tag'), x, y - H * .027)
+        })
+
+        if (now > rankAt) {
+            rankAt = now + 250
+            const order = [...runners].sort((a, b) => b.x - a.x)
+            $('standings').innerHTML = order.map((r, p) =>
+                `<div class="${r.mine ? 'me' : ''}"><div class="p num">${p + 1}</div>` +
+                `<div class="n num" style="background:${r.h.color};color:${r.h.trim}">${r.i + 1}</div><span>${esc(r.h.name)}</span></div>`).join('')
+            const metres = Math.max(0, Math.ceil((1 - lead / L) * 1200 / 50) * 50)
+            const place = order.findIndex(r => r.mine), many = order.filter(r => r.mine).length > 1
+            $('left').innerHTML = (metres > 0 ? `<b class="num">${metres} m</b><i>${t('track.left')}</i>` : `<b>${t('track.finished')}</b>`) +
+                (place >= 0 ? `<small>${t(many ? 'track.best_place' : 'track.your_place', { place: place + 1 })}</small>` : '')
+        }
+    }
+
+    // screens
+
+    const build = () => {
+        document.body.className = labels[S.phase] !== undefined ? S.phase : 'idle'
+        $('label').textContent = labels[S.phase] || ''
+        $('race').textContent = S.id ? t('track.race_no', { id: S.id }) : ''
+        total = Math.max(1, S.timeLeft)
+        runners = []
+        dust = []
+        cam = null
+        rankAt = 0
+
+        if (S.phase === 'betting') {
+            $('board').innerHTML = `<div class="title"><h2>${t('track.open')}</h2><span>${t('track.course')} · ${t('track.runners', { count: S.horses.length })}</span></div>` +
+                `<div class="cols"><i class="c1">${t('track.col_no')}</i><i class="c2">${t('track.col_horse')}</i><i>${t('track.col_odds')}</i></div>` +
+                `<div class="rows">${S.horses.map((h, i) => row(i, i + 1, '')).join('')}</div>`
+        } else if (S.phase === 'racing' && S.order) {
+            total = S.raceTime
+            runners = S.horses.map((h, i) => {
+                const rank = S.order.indexOf(i + 1)
+                return {
+                    h, i,
+                    T: S.raceTime * (.9 + .006 * (rank < 0 ? 5 : rank)),
+                    f1: 1 + ((S.id + i * 5) % 6) / 10, p1: ((S.id * 7 + i * 13) % 628) / 100,
+                    f2: 2.3 + ((S.id * 3 + i * 7) % 5) / 10, p2: ((S.id * 11 + i * 29) % 628) / 100,
+                    look: lookOf(i),
+                    dustAt: 0,
+                    mine: staked(i) > 0,
+                    stride: ((S.id + i * 37) % 100) / 100 * TAU,
+                    x: 0,
+                }
+            })
+        } else if (S.phase === 'result' && S.order) {
+            $('podium').innerHTML = `<div class="title"><h2>${t('track.result')}</h2><span>${t('track.course')}</span></div>` +
+                `<div class="cols"><i class="c1">${t('track.col_place')}</i><i class="c2">${t('track.col_horse')}</i><i>${t('track.col_odds')}</i></div>` +
+                `<div class="rows">${S.order.map((n, p) => row(n - 1, p + 1, p === 0 ? 'first' : p > 2 ? 'rest' : '')).join('')}</div>`
+        }
+    }
+
+    let shownTimer = null, shownBar = null, raf = 0
+
+    const tick = () => {
+        if (!S) return
+        const ms = left(), secs = Math.ceil(ms / 1000)
+        const text = S.phase === 'racing' || S.phase === 'idle' ? '' : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
+        if (text !== shownTimer) {
+            shownTimer = text
+            $('timer').textContent = text
+        }
+        const bar = S.phase === 'idle' ? 0 : Math.round(Math.min(1, ms / total) * 200) / 200
+        if (bar !== shownBar) {
+            shownBar = bar
+            $('bar').style.transform = `scaleX(${bar})`
+        }
+    }
+
+    const frame = () => {
+        raf = 0
+        if (!S || S.phase !== 'racing' || !runners.length) return
+        raf = requestAnimationFrame(frame)
+        drawScene(performance.now())
+    }
+
+    window.addEventListener('message', e => {
+        const d = e.data
+        if (!d || !d.phase || !d.horses) return
+        const changed = !S || S.id !== d.id || S.phase !== d.phase || JSON.stringify(S.mine) !== JSON.stringify(d.mine)
+        S = d
+        base = performance.now()
+        if (changed) build()
+        tick()
+        if (!raf) raf = requestAnimationFrame(frame)
+    })
+
+    setInterval(tick, 250)
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "casino-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lua": "node check-lua.mjs",
+    "locales": "node check-locales.mjs",
+    "check": "node check-lua.mjs && node check-locales.mjs && node test-core.mjs && node test-adapters.mjs",
+    "test": "node test-core.mjs && node test-adapters.mjs"
+  },
+  "devDependencies": {
+    "wasmoon": "1.16.0"
+  }
+}

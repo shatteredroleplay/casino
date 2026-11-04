@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="board.css">
+<style>
+    html, body { width: 1024px; height: 384px; }
+    .info { height: 96px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; box-sizing: border-box; }
+    .mine { height: 192px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+    .hands { height: 96px; display: flex; }
+    .hands > div { width: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .hands .cap { height: 26px; padding: 0 8px; font-size: 15px; letter-spacing: .04em; }
+    .row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .pill b { margin-left: -11px; }
+    .pill i { font-style: normal; color: var(--gold); }
+    .pill.on { box-shadow: inset 0 0 0 3px var(--gold); }
+    .pill.won { box-shadow: inset 0 0 0 3px var(--good); }
+    .pill.won i { color: var(--good); }
+    .pill.lost { color: var(--muted); box-shadow: inset 0 0 0 2px var(--line); }
+    .pill.lost i { color: inherit; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .status { font-size: 26px; }
+    .status.won { color: var(--good); }
+    .hand { min-width: 56px; padding: 0 12px; box-sizing: border-box; justify-content: center; font-size: 34px; }
+</style>
+</head>
+<body>
+<script src="board.js"></script>
+<script>
+    const SIDES = ['player', 'bank', 'tie']
+    const WON = { player: 'bacc.player_wins', bank: 'bacc.bank_wins', tie: 'bacc.tie_result' }
+
+    board((d, deadline) => {
+        const keys = list(d.keys)
+        const bets = d.bets || {}
+        const result = (side) => d.winner ? (d.winner === side ? 'won' : d.winner === 'tie' ? '' : 'lost') : ''
+        const hand = (side) => d[side] === undefined || d[side] === null ? '' : `<div class="cap">${t('bacc.' + side)}</div><div class="pill hand ${result(side)}">${d[side]}</div>`
+        const sides = SIDES.map((side) => {
+            const key = keys.find((k) => k[2] === side)
+            if (!key && !bets[side]) return ''
+            return `<div class="pill ${bets[side] ? result(side) || 'on' : ''}">${key ? `<b>${key[0]}</b>` : ''}${t('bacc.' + side)}${bets[side] ? `<i>${fmt(bets[side])}</i>` : ''}</div>`
+        }).join('')
+        const rest = keys.filter((k) => !k[2]).map(([key, label]) => `<div class="pill key"><b>${key}</b>${label}</div>`).join('')
+        const status = d.phase === 'result' ? t(WON[d.winner]) : d.phase === 'betting' ? t('table.place_bets') : ''
+        const mineWon = d.phase === 'result' && d.winner && bets[d.winner]
+        document.body.innerHTML = `
+            <div class="info">${status ? `<div class="pill status ${mineWon ? 'won' : ''}">${status}</div>` : ''}</div>
+            <div class="mine">
+                ${sides ? `<div class="cap">${keys.some((k) => k[2]) ? t('bacc.bet_on') : t('bacc.your_bets')}</div><div class="row">${sides}</div>` : ''}
+                ${rest ? `<div class="row">${rest}</div>` : ''}
+                ${deadline ? '<div class="bar"><i></i></div>' : ''}
+            </div>
+            <div class="hands"><div>${hand('player')}</div><div>${hand('bank')}</div></div>`
+    })
+</script>
+</body>
+</html>

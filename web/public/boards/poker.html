@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="board.css">
+<style>
+    html, body { width: 1024px; height: 832px; }
+    .piece { position: absolute; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+    #table { left: 0; top: 0; width: 640px; height: 256px; gap: 14px; padding-bottom: 6px; }
+    .tag { top: 256px; width: 256px; height: 256px; padding: 0 6px 6px; }
+    #own { left: 0; top: 512px; width: 768px; height: 320px; gap: 10px; padding-bottom: 6px; }
+
+    .row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .pill { font-size: 23px; font-weight: 600; padding: 0 16px; }
+    .pill b { margin-left: -8px; }
+    .pill i { font-style: normal; font-weight: 500; color: var(--muted); }
+    #pot { font-size: 32px; height: 58px; padding: 0 20px; font-weight: 700; }
+    #pot i { color: var(--gold); font-weight: 600; }
+
+    .card { width: 110px; height: 154px; border-radius: 12px; background: #fff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 64px; font-weight: 700; line-height: .95; letter-spacing: -3px; box-shadow: 0 0 0 4px #0a0a0c; }
+    .card.hrt, .card.dia { color: #d3261b; }
+    .card.back { background: repeating-linear-gradient(45deg, #7a1f2b 0 8px, #5c1620 8px 16px); box-shadow: inset 0 0 0 6px #fff, 0 0 0 4px #0a0a0c; }
+    .card.small { width: 58px; height: 80px; border-radius: 8px; font-size: 34px; letter-spacing: -2px; box-shadow: 0 0 0 3px #0a0a0c; }
+    .card.small.back { box-shadow: inset 0 0 0 4px #fff, 0 0 0 3px #0a0a0c; }
+
+    .seat { width: 100%; padding: 8px 12px 10px; border-radius: var(--radius); background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; font-weight: 600; }
+    .seat.out { color: var(--muted); }
+    .seat.out .stack { opacity: .6; }
+    .seat .who { font-size: 18px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .seat.own .who { color: var(--gold); }
+    .seat em { font-style: normal; padding: 0 7px; border-radius: 5px; background: #fff; color: #111; font-size: 16px; font-weight: 700; }
+    .seat .stack { font-size: 34px; font-weight: 700; line-height: 1; }
+    .seat .did { max-width: 100%; font-size: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .seat .hand { font-size: 17px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .seat .bar { width: 100%; margin-top: 2px; background: rgba(255, 255, 255, .12); }
+    .seat.turn { box-shadow: inset 0 0 0 3px var(--gold); }
+    .seat.turn .who::before { content: ''; width: 10px; height: 10px; border-radius: 5px; background: var(--gold); }
+    .seat.won { box-shadow: inset 0 0 0 3px var(--good); }
+    .seat.won .did { color: var(--good); }
+    .seat .did.raise, .owe { padding: 3px 12px; border-radius: 8px; background: var(--bad-fill); color: #fff; font-weight: 700; white-space: nowrap; }
+    .pill.raise { background: var(--bad-fill); box-shadow: none; }
+    .pill.raise i { color: rgba(255, 255, 255, .8); }
+    .owe { align-self: flex-start; font-size: 23px; padding: 5px 12px; }
+
+    .me { padding: 4px; display: flex; align-items: flex-start; gap: 20px; }
+    .me .text { display: flex; flex-direction: column; gap: 8px; padding: 14px 18px; border-radius: var(--radius); background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); font-weight: 600; }
+    .me .status { font-size: 34px; font-weight: 700; line-height: 1; white-space: nowrap; }
+    .me.turn .text { box-shadow: inset 0 0 0 3px var(--gold); }
+    .me.turn .status { color: var(--gold); }
+    .me.won .text { box-shadow: inset 0 0 0 3px var(--good); }
+    .me.won .status { color: var(--good); }
+    .me .sub { font-size: 21px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .me .sub i { font-style: normal; font-weight: 700; color: var(--text); }
+    .keys { flex-wrap: wrap; row-gap: 8px; max-width: 760px; }
+</style>
+</head>
+<body>
+<script src="board.js"></script>
+<script>
+    const SUITS = { club: '♣', dia: '♦', hrt: '♥', spd: '♠' }
+    const RANKS = { ace: 'A', king: 'K', queen: 'Q', jack: 'J' }
+    const PHASES = ['waiting', 'preflop', 'flop', 'turn', 'river', 'showdown']
+    const BAR = '<div class="bar"><i></i></div>'
+
+    const card = (code, small) => {
+        if (code === 'back') return `<div class="card back ${small ? 'small' : ''}"></div>`
+        const [suit, rank] = code.split('_')
+        return `<div class="card ${suit} ${small ? 'small' : ''}"><span>${RANKS[rank] || Number(rank)}</span><span>${SUITS[suit]}</span></div>`
+    }
+
+    const raised = (s) => (s.last === 'raise' || s.last === 'bet') && !s.folded && !s.won
+
+    const tag = (s, deadline) => {
+        const cls = [s.turn && 'turn', s.folded && 'out', s.won && 'won', s.own && 'own'].filter(Boolean).join(' ')
+        return `<div class="piece tag" style="left:${(s.seat - 1) * 256}px"><div class="seat ${cls}">
+            <div class="who">${t('poker.seat', { n: s.seat })}${s.button ? '<em>D</em>' : ''}</div>
+            ${s.cards ? `<div class="row" style="gap:10px;margin:4px 0">${s.cards.map((c) => card(c, true)).join('')}</div>` : ''}
+            ${s.cards && s.name ? `<div class="hand">${s.name}</div>` : ''}
+            <div class="stack">${fmt(s.stack)}</div>
+            ${s.did ? `<div class="did ${raised(s) ? 'raise' : ''}">${s.did}</div>` : ''}
+            ${s.turn && deadline ? BAR : ''}
+        </div></div>`
+    }
+
+    const own = (d, me, keys, deadline) => {
+        const waiting = d.seats.find((s) => s.turn)
+        const status = me.won ? t('poker.you_won', { amount: fmt(me.won) })
+            : d.phase === 'showdown' ? t('poker.phase_showdown')
+            : me.turn ? t('poker.your_turn')
+            : me.folded ? t('poker.you_folded')
+            : waiting ? t('poker.waiting_seat', { n: waiting.seat })
+            : d.phase === 'waiting' ? t('poker.phase_waiting')
+            : d.phase === 'preflop' ? t('poker.dealing') : t('poker.next_hand')
+        const live = me.playing && !me.folded && !me.allin && d.phase !== 'showdown'
+        const owe = live ? Math.min(d.bet - me.bet, me.stack) : 0
+        const raiser = d.seats.find((s) => !s.own && raised(s) && s.bet === d.bet)
+        const alert = owe > 0 ? `<div class="owe">${raiser ? t('poker.raised_by', { n: raiser.seat, bet: fmt(d.bet), owe: fmt(owe) }) : t('poker.call_to_stay', { owe: fmt(owe) })}</div>` : ''
+        const sub = [me.name, t('poker.stack', { amount: `<i>${fmt(me.stack)}</i>` }), me.bet ? t('poker.staked', { amount: fmt(me.bet) }) : ''].filter(Boolean).join(' · ')
+        return `<div class="piece" id="own">
+            <div class="me ${me.won ? 'won' : me.turn ? 'turn' : ''}">
+                ${d.mine.length ? `<div class="row" style="gap:12px">${d.mine.map((c) => card(c)).join('')}</div>` : ''}
+                <div class="text"><div class="status">${status}</div>${alert}<div class="sub">${sub}</div></div>
+            </div>
+            ${keys ? `<div class="row keys">${keys}</div>` : ''}
+            ${me.turn && deadline ? BAR : ''}
+        </div>`
+    }
+
+    board((d, deadline) => {
+        Object.assign(d, { seats: list(d.seats), board: list(d.board), mine: list(d.mine) })
+        const keys = list(d.keys).map(([key, label]) => `<div class="pill key"><b>${key}</b>${label}</div>`).join('')
+        const me = d.seats.find((s) => s.own)
+        const phase = PHASES.includes(d.phase) ? t('poker.phase_' + d.phase) : ''
+        document.body.innerHTML = `
+            <div class="piece" id="table">
+                <div class="row">
+                    ${d.pot ? `<div class="pill" id="pot"><i>${t('poker.pot')}</i>${fmt(d.pot)}</div>` : ''}
+                    ${d.bet && d.phase !== 'showdown' ? `<div class="pill ${d.seats.some(raised) ? 'raise' : ''}"><i>${t('poker.bet_label')}</i>${fmt(d.bet)}</div>` : ''}
+                    ${phase ? `<div class="pill">${phase}</div>` : ''}
+                </div>
+                ${d.board.length ? `<div class="row">${d.board.map((c) => card(c)).join('')}</div>` : ''}
+            </div>
+            ${d.seats.map((s) => tag(s, deadline)).join('')}
+            ${me ? own(d, me, keys, deadline) : ''}`
+    })
+</script>
+</body>
+</html>

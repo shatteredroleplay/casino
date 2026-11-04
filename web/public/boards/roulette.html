@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="board.css">
+<style>
+    html, body { width: 1024px; height: 512px; }
+    section { height: 256px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+    #board { gap: 20px; }
+    .tile { position: relative; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; }
+    .tile::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 55%); pointer-events: none; }
+    .tile.red { background: #d0362e; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .14), inset 0 -4px 0 rgba(0, 0, 0, .22); }
+    .tile.black { background: #1f1f25; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .16), inset 0 -4px 0 rgba(0, 0, 0, .3); }
+    .tile.green { background: #179a52; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .14), inset 0 -4px 0 rgba(0, 0, 0, .22); }
+    .tile.none { background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); color: var(--muted); }
+    .tile.none::before { display: none; }
+
+    #number { width: 184px; height: 184px; flex: none; border-radius: 32px; flex-direction: column; gap: 2px; }
+    #number b { font-size: 96px; line-height: 1; letter-spacing: -2px; }
+    #number small { font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+    #number.none b::after { content: '–'; }
+
+    #info { width: 640px; height: 184px; box-sizing: border-box; padding: 20px 24px; border-radius: 24px; background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); display: flex; flex-direction: column; }
+    #status { font-size: 32px; font-weight: 700; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #caption { margin-top: 16px; font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    #history { margin-top: 8px; display: flex; gap: 8px; }
+    #history .tile { width: 52px; height: 52px; flex: none; border-radius: 12px; font-size: 22px; }
+    #history .tile.none { font-size: 0; }
+    #info .bar { width: auto; height: 8px; margin-top: auto; padding: 0; background: rgba(255, 255, 255, .1); }
+    #panel { flex-direction: column; gap: 14px; }
+    .row { display: flex; gap: 14px; }
+    .stat { height: 56px; padding: 0 22px; border-radius: var(--radius); background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 700; }
+    .stat small { font-size: 18px; font-weight: 600; color: var(--muted); }
+    .stat.gold { color: var(--gold); box-shadow: inset 0 0 0 3px var(--gold); }
+</style>
+</head>
+<body>
+<section id="board">
+    <div id="number" class="tile none"><b></b><small></small></div>
+    <div id="info">
+        <div id="status"></div>
+        <div id="caption"></div>
+        <div id="history"></div>
+        <div class="bar"><i></i></div>
+    </div>
+</section>
+<section id="panel"></section>
+<script src="board.js"></script>
+<script>
+    const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36])
+    const color = (n) => n == null ? 'none' : String(n) === '0' || String(n) === '00' ? 'green' : RED.has(Number(n)) ? 'red' : 'black'
+    const NAMES = { red: t('roulette.bet_red'), black: t('roulette.bet_black'), green: t('roulette.green'), none: '' }
+    const SLOTS = 10
+    document.getElementById('caption').textContent = t('roulette.recent')
+
+    board((d) => {
+        const number = document.getElementById('number')
+        const current = color(d.number)
+        number.className = 'tile ' + current
+        number.querySelector('b').textContent = d.number ?? ''
+        number.querySelector('small').textContent = NAMES[current]
+        document.getElementById('status').textContent = d.status
+        const recent = list(d.history).slice(1, SLOTS + 1)
+        const slots = recent.concat(Array(SLOTS - recent.length).fill(null))
+        document.getElementById('history').innerHTML = slots.map((n, i) => `<div class="tile ${color(n)}" style="opacity:${n == null ? 1 : 1 - i * 0.035}">${n ?? ''}</div>`).join('')
+
+        const seated = d.seated
+        let panel = ''
+        if (seated) {
+            const hover = seated.hover ? `<div class="stat gold">${seated.hover.label}<small>${seated.hover.payout}:1</small></div>` : ''
+            const keys = list(seated.keys).map(([key, label]) => `<div class="pill key"><b>${key}</b>${label}</div>`).join('')
+            panel = `<div class="row"><div class="stat"><small>${t('roulette.board_amount')}</small>${fmt(seated.amount)}</div><div class="stat"><small>${t('roulette.board_bet')}</small>${fmt(seated.bet)}</div>${hover}</div><div class="row">${keys}</div>`
+        }
+        document.getElementById('panel').innerHTML = panel
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    html, body { margin: 0; width: 1024px; height: 1024px; background: transparent; overflow: hidden; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="wheel" width="1024" height="1024"></canvas>
+<script>
+    const { prizes } = JSON.parse(decodeURIComponent(location.hash.slice(1)))
+    const S = 1024, C = S / 2, n = prizes.length, seg = Math.PI * 2 / n, TAU = Math.PI * 2
+    const FACE = 506, HUB = 74, PEG = 482
+    const FONT = "Bahnschrift, 'Arial Narrow', Arial, sans-serif"
+    const TEXT_END = 446, TEXT_MAX = 300
+
+    const ctx = document.getElementById('wheel').getContext('2d')
+    const base = document.createElement('canvas')
+    base.width = base.height = S
+    const b = base.getContext('2d')
+
+    const COLORS = {
+        dark: { fill: '#16171b', text: '#e6d3a1' },
+        brass: { fill: '#c49a4a', text: '#16171b' },
+        green: { fill: '#1f3a2c', text: '#e6d3a1' },
+    }
+
+    const colors = (p, i) => {
+        if (p.color) return { fill: p.color, text: '#f1e4c0' }
+        if (n % 2 === 1 && i === n - 1) return COLORS.green
+        return i % 2 ? COLORS.dark : COLORS.brass
+    }
+
+    const text = p => String(p.label).replace(/_/g, ' ').toUpperCase()
+
+    const font = size => {
+        b.font = `600 ${size}px ${FONT}`
+        if ('fontStretch' in b) b.fontStretch = 'semi-condensed'
+        if ('letterSpacing' in b) b.letterSpacing = `${Math.round(size * 0.04)}px`
+    }
+
+    const size = (() => {
+        let s = 46
+        const fits = () => prizes.every(p => { font(s); return b.measureText(text(p)).width <= TEXT_MAX })
+        while (s > 18 && !fits()) s--
+        return s
+    })()
+
+    const drawBase = () => {
+        b.setTransform(1, 0, 0, 1, C, C)
+        b.clearRect(-C, -C, S, S)
+
+        prizes.forEach((p, i) => {
+            const c = colors(p, i), mid = i * seg - Math.PI / 2
+            b.beginPath()
+            b.moveTo(0, 0)
+            b.arc(0, 0, FACE, mid - seg / 2, mid + seg / 2)
+            b.closePath()
+            b.fillStyle = c.fill
+            b.fill()
+
+            b.save()
+            b.rotate(mid)
+            b.fillStyle = c.text
+            b.textAlign = 'right'
+            b.textBaseline = 'middle'
+            font(size)
+            b.fillText(text(p), TEXT_END, 2)
+            b.restore()
+        })
+
+        b.strokeStyle = '#0d0e10'
+        b.lineWidth = 3
+        for (let i = 0; i < n; i++) {
+            const a = i * seg - Math.PI / 2 - seg / 2
+            b.beginPath()
+            b.moveTo(Math.cos(a) * HUB, Math.sin(a) * HUB)
+            b.lineTo(Math.cos(a) * FACE, Math.sin(a) * FACE)
+            b.stroke()
+        }
+
+        b.lineWidth = 5
+        b.beginPath(); b.arc(0, 0, FACE - 2.5, 0, TAU); b.stroke()
+
+        for (let i = 0; i < n; i++) {
+            const a = i * seg - Math.PI / 2 - seg / 2
+            const x = Math.cos(a) * PEG, y = Math.sin(a) * PEG
+            b.fillStyle = '#0d0e10'
+            b.beginPath(); b.arc(x, y, 9, 0, TAU); b.fill()
+            b.fillStyle = '#cfc8b6'
+            b.beginPath(); b.arc(x, y, 6.5, 0, TAU); b.fill()
+        }
+
+        b.fillStyle = '#0d0e10'
+        b.beginPath(); b.arc(0, 0, HUB, 0, TAU); b.fill()
+        b.strokeStyle = '#c49a4a'
+        b.lineWidth = 4
+        b.beginPath(); b.arc(0, 0, HUB - 10, 0, TAU); b.stroke()
+        b.fillStyle = '#cfc8b6'
+        b.beginPath(); b.arc(0, 0, 14, 0, TAU); b.fill()
+        b.fillStyle = '#0d0e10'
+        b.beginPath(); b.arc(0, 0, 5, 0, TAU); b.fill()
+    }
+
+    const draw = () => {
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.clearRect(0, 0, S, S)
+        ctx.drawImage(base, 0, 0)
+    }
+
+    drawBase()
+    draw()
+    setInterval(draw, 250)
+</script>
+</body>
+</html>

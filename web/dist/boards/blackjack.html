@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="board.css">
+<style>
+    html, body { width: 1152px; height: 320px; }
+    #nums { height: 64px; display: flex; align-items: center; }
+    #nums div { width: 128px; display: flex; justify-content: center; }
+    #nums span { min-width: 56px; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: var(--radius); background: var(--plate); box-shadow: inset 0 0 0 2px var(--line); font-weight: 700; font-size: 34px; display: flex; align-items: center; justify-content: center; }
+    #nums .bust { color: var(--bad); box-shadow: inset 0 0 0 3px var(--bad); }
+    #nums .bj { color: var(--gold); box-shadow: inset 0 0 0 3px var(--gold); }
+    #keys { width: 640px; height: 256px; display: flex; align-items: center; justify-content: safe center; }
+    #keys.left { justify-content: flex-start; }
+    .group { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 624px; }
+    .left .group { align-items: flex-start; }
+    .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 14px; }
+    .left .pills { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .bar { min-width: 120px; }
+</style>
+</head>
+<body>
+<div id="nums"></div>
+<div id="keys"></div>
+<script src="board.js"></script>
+<script>
+    board((d, deadline) => {
+        const keys = document.getElementById('keys')
+        const pills = list(d.keys).map(([key, label]) => `<div class="pill key"><b>${key}</b>${label}</div>`).join('')
+        keys.classList.toggle('left', !!d.left)
+        keys.innerHTML = `<div class="group"><div class="pills">${pills}</div>${deadline ? '<div class="bar"><i></i></div>' : ''}</div>`
+        document.getElementById('nums').innerHTML = list(d.nums).map((h) => {
+            const cls = h.blackjack ? 'bj' : h.value > 21 ? 'bust' : ''
+            return `<div><span class="${cls}">${h.value}</span></div>`
+        }).join('')
+    })
+</script>
+</body>
+</html>

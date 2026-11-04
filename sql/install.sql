@@ -1,0 +1,80 @@
+CREATE TABLE IF NOT EXISTS `casino_players` (
+    `identifier` VARCHAR(64) NOT NULL,
+    `name` VARCHAR(100) NULL DEFAULT NULL,
+    `wallet` BIGINT NOT NULL DEFAULT 0,
+    `wagered` BIGINT NOT NULL DEFAULT 0,
+    `won` BIGINT NOT NULL DEFAULT 0,
+    `rounds` INT UNSIGNED NOT NULL DEFAULT 0,
+    `biggest_win` BIGINT NOT NULL DEFAULT 0,
+    `wheel_spun_at` INT UNSIGNED NULL DEFAULT NULL,
+    `banned` TINYINT(1) NOT NULL DEFAULT 0,
+    `last_seen` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`identifier`),
+    KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_games` (
+    `game` VARCHAR(48) NOT NULL,
+    `wagered` BIGINT NOT NULL DEFAULT 0,
+    `won` BIGINT NOT NULL DEFAULT 0,
+    `rounds` INT UNSIGNED NOT NULL DEFAULT 0,
+    `biggest_win` BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`game`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_hourly` (
+    `hour` DATETIME NOT NULL,
+    `game` VARCHAR(48) NOT NULL,
+    `wagered` BIGINT NOT NULL DEFAULT 0,
+    `won` BIGINT NOT NULL DEFAULT 0,
+    `rounds` INT UNSIGNED NOT NULL DEFAULT 0,
+    `players` INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (`hour`, `game`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_rounds` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `identifier` VARCHAR(64) NOT NULL,
+    `game` VARCHAR(48) NOT NULL,
+    `bet` BIGINT NOT NULL DEFAULT 0,
+    `payout` BIGINT NOT NULL DEFAULT 0,
+    `meta` LONGTEXT NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `identifier` (`identifier`, `created_at`),
+    KEY `created_at` (`created_at`),
+    KEY `payout` (`payout`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_state` (
+    `k` VARCHAR(64) NOT NULL,
+    `v` LONGTEXT NULL DEFAULT NULL,
+    PRIMARY KEY (`k`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_rigs` (
+    `target` VARCHAR(64) NOT NULL,
+    `mode` VARCHAR(8) NOT NULL DEFAULT 'off',
+    `chance` TINYINT UNSIGNED NOT NULL DEFAULT 100,
+    `games` LONGTEXT NULL DEFAULT NULL,
+    `wheel_prize` SMALLINT UNSIGNED NULL DEFAULT NULL,
+    `net` BIGINT NOT NULL DEFAULT 0,
+    `until_net` BIGINT NULL DEFAULT NULL,
+    `expires_at` INT UNSIGNED NULL DEFAULT NULL,
+    `created_by` VARCHAR(100) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`target`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `casino_audit` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `admin` VARCHAR(64) NULL DEFAULT NULL,
+    `admin_name` VARCHAR(100) NULL DEFAULT NULL,
+    `action` VARCHAR(48) NOT NULL,
+    `target` VARCHAR(64) NULL DEFAULT NULL,
+    `data` LONGTEXT NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `created_at` (`created_at`),
+    KEY `admin` (`admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
