@@ -14,7 +14,7 @@ Config.Atmosphere = {
     Wall = { Enabled = true, Effects = true, Playlist = 'CASINO_DIA_PL', Width = 1080, Height = 1920, Rotation = 90, Mirror = false, Distance = 40.0 },
 
     -- chip tracker next to the minimap: chips, start of session, net and a bar for every round
-    Hud = { Enabled = true, Keep = 15 * 60, Bars = 24, Offset = { x = 0.8, y = 0.03 } },
+    Hud = { Enabled = true, Command = 'casinohud', Keep = 15 * 60, Bars = 24, Offset = { x = 0.8, y = 0.03 } },
 
     -- IPLs requested when the resource starts, for casino interiors that need them (leave empty for an MLO or bob74_ipl)
     Ipls = {},

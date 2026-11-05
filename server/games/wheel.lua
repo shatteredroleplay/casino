@@ -65,6 +65,14 @@ local Values = {
     car = function() return Cfg.Car.Value end,
 }
 
+local turn = function(index)
+    local target = -(index - 1) * SEG + (math.random() - 0.5) * SEG * 0.7
+    local from = state.to % 360
+    state = { from = from, to = from + 360 * Cfg.Turns + (target - from) % 360, started = GetGameTimer() }
+    Broadcast(SPIN, state.from, state.to)
+    Wait(Cfg.SpinTime)
+end
+
 local lastSpin = function(id)
     return MySQL.scalar.await('SELECT `wheel_spun_at` FROM `casino_players` WHERE `identifier` = ?', { id }) or 0
 end
@@ -112,11 +120,7 @@ Rpc.Register('wheel:spin', function(src)
     MySQL.prepare.await('INSERT INTO `casino_players` (`identifier`, `wheel_spun_at`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `wheel_spun_at` = ?', { id, os.time(), os.time() })
 
     local index = Rig.WheelPrize(id) or roll()
-    local target = -(index - 1) * SEG + (math.random() - 0.5) * SEG * 0.7
-    local from = state.to % 360
-    state = { from = from, to = from + 360 * Cfg.Turns + (target - from) % 360, started = GetGameTimer() }
-    Broadcast(SPIN, state.from, state.to)
-    Wait(Cfg.SpinTime)
+    turn(index)
 
     local prize = Cfg.Prizes[index]
     local ok, given = pcall(Give[prize.type], src, prize)
@@ -132,3 +136,21 @@ Rpc.Register('wheel:state', function()
     return { from = state.from, to = state.to, elapsed = GetGameTimer() - state.started }
 end)
 
+if not Config.Debug then return end
+
+RegisterCommand('casinowheel', function(src, args)
+    if not Perms.Has(src, 'rig') then return end
+    local index = args[1] and tonumber(args[1]) or roll()
+    if not Cfg.Prizes[index] then
+        return Util.Print('warn', 'usage: casinowheel [prize index 1-%d]', #Cfg.Prizes)
+    end
+    if spinning or (owner and GetGameTimer() < ownerUntil) then
+        return Util.Print('warn', 'the wheel is busy')
+    end
+    spinning = true
+    CreateThread(function()
+        turn(index)
+        spinning = false
+        Util.Print('ok', 'test spin landed on %d (%s)', index, Wheel.Label(Cfg.Prizes[index]))
+    end)
+end, false)

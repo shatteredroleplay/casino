@@ -594,6 +594,8 @@
   "hud.start": "Start",
   "hud.no_rounds": "No rounds yet",
   "hud.net": "Net",
+  "hud.hidden": "The chip tracker is hidden",
+  "hud.visible": "The chip tracker is visible",
   "admin.title": "Admin panel",
   "admin.esc": "Esc closes the panel",
   "admin.tab_dashboard": "Dashboard",

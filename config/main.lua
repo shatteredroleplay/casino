@@ -13,7 +13,7 @@ Config.Currency = {
 }
 
 -- Prints what the bridge picked and every rejected request to the console, and enables /casinotest.
-Config.Debug = false
+Config.Debug = true
 
 -- Which resource handles each system. 'auto' takes the first supported one that is running.
 --   Framework   : auto | qbx | qb | esx | ox | nd | standalone | custom

@@ -594,6 +594,8 @@
   "hud.start": "Start",
   "hud.no_rounds": "Inga rundor ännu",
   "hud.net": "Netto",
+  "hud.hidden": "Chipsmätaren är dold",
+  "hud.visible": "Chipsmätaren visas",
   "admin.title": "Adminpanel",
   "admin.esc": "Esc stänger panelen",
   "admin.tab_dashboard": "Översikt",

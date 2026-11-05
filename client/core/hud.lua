@@ -1,7 +1,23 @@
 local Cfg = Config.Atmosphere.Hud
+
+local session, shown, sent, pending, hidden
+
+local setHidden = function(state)
+    hidden = state ~= false
+    sent = nil
+end
+
+exports('HideHud', setHidden)
+exports('IsHudHidden', function() return hidden == true end)
+
 if not Cfg.Enabled then return end
 
-local session, shown, sent, pending
+if Cfg.Command then
+    RegisterCommand(Cfg.Command, function()
+        setHidden(not hidden)
+        Bridge.Notify.Send(L(hidden and 'hud.hidden' or 'hud.visible'), 'info', 3000, L('common.casino'))
+    end, false)
+end
 
 local count = function()
     local held = Casino.Chips or 0
@@ -46,7 +62,7 @@ CreateThread(function()
             if chips == pending then session.chips = chips end
             pending = chips
 
-            local visible = not IsPauseMenuActive() and (session.chips > 0 or session.start > 0 or session.played)
+            local visible = not hidden and not IsPauseMenuActive() and (session.chips > 0 or session.start > 0 or session.played)
             local left, bottom = place()
             local key = ('%s:%s:%s:%s:%s'):format(session.chips, session.start, visible, left, bottom)
             if key ~= sent and now >= (session.hold or 0) then
