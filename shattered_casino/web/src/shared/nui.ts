@@ -9,7 +9,7 @@ declare global {
 }
 
 export const isBrowser = !window.invokeNative
-const resource = window.GetParentResourceName ? window.GetParentResourceName() : 'casino'
+const resource = window.GetParentResourceName ? window.GetParentResourceName() : 'shattered_casino'
 const handlers = new Map<string, Set<Handler>>()
 
 export const post = async <T = unknown>(name: string, data: unknown = {}): Promise<T | undefined> => {

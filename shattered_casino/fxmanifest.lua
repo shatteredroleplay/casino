@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-name 'casino'
+name 'shattered_casino'
 author 'Edvin'
 description 'Casino: table games, slots, racing, lucky wheel and admin panel'
 version '2.0.0'
