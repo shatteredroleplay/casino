@@ -13,7 +13,7 @@ Config.Currency = {
 }
 
 -- Prints what the bridge picked and every rejected request to the console, and enables /casinotest.
-Config.Debug = true
+Config.Debug = false
 
 -- Which resource handles each system. 'auto' takes the first supported one that is running.
 --   Framework   : auto | qbx | qb | esx | ox | nd | standalone | custom
@@ -21,15 +21,15 @@ Config.Debug = true
 --                 (qb also covers ps-inventory and lj-inventory, they hook the qb-core player functions)
 --   Target      : auto | ox | qb | sleepless | interact | context | builtin
 --                 (builtin needs no resource: walk up to a table and press E)
---   Notify      : builtin | ox | qb | esx | okok | shattered | custom
+--   Notify      : auto | builtin | ox | qb | esx | okok | shattered | custom
 --   VehicleKeys : none | item | custom    (the wheel car is stored in a garage, most key systems hand out keys on spawn)
 --   Society     : none | esx | qb | renewed | okok | shattered | custom    (where the house income goes, account in config/server.lua)
 --   Logs        : none | discord | fivemanage | shattered | custom    (webhooks and tokens in config/server.lua)
 Config.Bridge = {
-    Framework = 'qbx',
-    Inventory = 'ox',
-    Target = 'ox',
-    Notify = 'ox',
+    Framework = 'auto',
+    Inventory = 'auto',
+    Target = 'auto',
+    Notify = 'auto',
     VehicleKeys = 'none',
     Society = 'none',
     Logs = 'none',

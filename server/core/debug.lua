@@ -56,7 +56,7 @@ RegisterCommand('casinoqa', function(src, args)
             if not line.ok then failed = failed + 1 end
             Util.Print(line.ok and 'ok' or 'error', '%s %s', line.ok and 'PASS' or 'FAIL', line.text)
         end
-        Util.Print(failed == 0 and 'ok' or 'error', failed == 0 and 'self test passed' or '%d check(s) failed, see docs/testing.md', failed)
+        Util.Print(failed == 0 and 'ok' or 'error', failed == 0 and 'self test passed' or '%d check(s) failed', failed)
     end)
 end, true)
 

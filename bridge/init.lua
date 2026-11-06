@@ -31,7 +31,7 @@ Bridge.Kinds = {
         setting = 'Notify',
         field = 'Notify',
         fallback = 'builtin',
-        order = {},
+        order = { 'ox', 'okok', 'esx', 'qb' },
         client = { 'Send' },
     },
     vehiclekeys = {
@@ -84,7 +84,7 @@ local pick = function(kind, def)
 end
 
 local broken = function(kind, name, reason)
-    Util.Print('error', '%s adapter "%s" %s. See docs/bridges.md', kind, tostring(name), reason)
+    Util.Print('error', '%s adapter "%s" %s. Check Config.Bridge in config/main.lua', kind, tostring(name), reason)
     local warned = false
     return setmetatable({ name = name, broken = true }, {
         __index = function(_, fn)
