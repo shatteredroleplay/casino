@@ -5,7 +5,7 @@ lua54 'yes'
 name 'shattered_casino'
 author 'Edvin'
 description 'Casino: table games, slots, racing, lucky wheel and admin panel'
-version '2.0.0'
+version '1.0.0'
 
 dependencies {
     '/gameBuild:2060',
