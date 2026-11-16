@@ -1,42 +1,48 @@
 exports('GetChips', function(src)
-    return Wallet.Get(src)
+	return WalletGet(src)
 end)
 
 exports('AddChips', function(src, amount)
-    return Wallet.Add(src, amount)
+	return WalletAdd(src, amount)
 end)
 
 exports('RemoveChips', function(src, amount)
-    return Wallet.Remove(src, amount)
+	return WalletRemove(src, amount)
 end)
 
 exports('PoolBalance', function()
-    return Pool.Balance() * Config.Chips.Rate
+	return PoolBalance() * Config.Chips.Rate
 end)
 
 exports('CarFund', function()
-    return Pool.Fund()
+	return PoolFund()
 end)
 
 exports('RigState', function()
-    return Rig.State()
+	return RigState()
 end)
 
 exports('RigFeed', function(since)
-    return Rig.FeedSince(since)
+	return RigFeedSince(since)
 end)
 
 exports('RigSet', function(admin, target, mode, chance, games, options)
-    if not Audit.Valid(admin) then return false end
-    return Rig.Set(admin, target or nil, mode, chance, games, options)
+	if not AuditValid(admin) then
+		return false
+	end
+	return RigSet(admin, target or nil, mode, chance, games, options)
 end)
 
 exports('RigWheel', function(admin, target, index)
-    if not Audit.Valid(admin) then return false end
-    return Rig.SetWheel(admin, target, index)
+	if not AuditValid(admin) then
+		return false
+	end
+	return RigSetWheel(admin, target, index)
 end)
 
 exports('RigClear', function(admin)
-    if not Audit.Valid(admin) then return false end
-    return Rig.Clear(admin)
+	if not AuditValid(admin) then
+		return false
+	end
+	return RigClear(admin)
 end)

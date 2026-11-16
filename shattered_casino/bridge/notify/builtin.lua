@@ -1,6 +1,9 @@
 -- kind is 'info', 'success', 'warning' or 'error' in every notify adapter
-Bridge.Add('notify', 'builtin', {
-    Send = function(text, kind, duration, title)
-        Ui.Notify(text, kind, duration, title)
-    end,
+
+local Send = function(text, kind, duration, title)
+	UiNotify(text, kind, duration, title)
+end
+
+BridgeAdd('notify', 'builtin', {
+	Send = Send,
 })

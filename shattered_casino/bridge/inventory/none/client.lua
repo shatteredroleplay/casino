@@ -1,8 +1,10 @@
-Bridge.Add('inventory', 'none', {
-    Count = function()
-        return 0
-    end,
+local Count = function()
+	return 0
+end
 
-    SetBusy = function()
-    end,
+local SetBusy = function() end
+
+BridgeAdd('inventory', 'none', {
+	Count = Count,
+	SetBusy = SetBusy,
 })

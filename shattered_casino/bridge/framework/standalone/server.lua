@@ -1,48 +1,62 @@
 -- No framework: players are known by their license and there is no money system.
 -- Use Config.Chips.Mode = 'wallet' and hand out chips from the admin panel, or write a custom adapter.
 local license = function(src)
-    return GetPlayerIdentifierByType(src, 'license')
+	return GetPlayerIdentifierByType(src, 'license')
 end
 
-Bridge.Add('framework', 'standalone', {
-    GetIdentifier = function(src)
-        return license(src)
-    end,
+local GetIdentifier = function(src)
+	return license(src)
+end
 
-    GetSource = function(identifier)
-        for _, id in ipairs(GetPlayers()) do
-            if license(id) == identifier then return tonumber(id) end
-        end
-    end,
+local GetSource = function(identifier)
+	for _, id in ipairs(GetPlayers()) do
+		if license(id) == identifier then
+			return tonumber(id)
+		end
+	end
+end
 
-    GetName = function(src)
-        return GetPlayerName(src)
-    end,
+local GetName = function(src)
+	return GetPlayerName(src)
+end
 
-    GetMoney = function()
-        return 0
-    end,
+local GetMoney = function()
+	return 0
+end
 
-    AddMoney = function()
-        return false
-    end,
+local AddMoney = function()
+	return false
+end
 
-    RemoveMoney = function()
-        return false
-    end,
+local RemoveMoney = function()
+	return false
+end
 
-    HasGroup = function(src, group)
-        return IsPlayerAceAllowed(src, 'group.' .. group)
-    end,
+local HasGroup = function(src, group)
+	return IsPlayerAceAllowed(src, 'group.' .. group)
+end
 
-    OnLoad = function(cb)
-        AddEventHandler('playerJoining', function() cb(source) end)
-    end,
+local OnLoad = function(cb)
+	AddEventHandler('playerJoining', function()
+		cb(source)
+	end)
+end
 
-    OnUnload = function()
-    end,
+local OnUnload = function() end
 
-    GiveVehicle = function()
-        return nil
-    end,
+local GiveVehicle = function()
+	return nil
+end
+
+BridgeAdd('framework', 'standalone', {
+	GetIdentifier = GetIdentifier,
+	GetSource = GetSource,
+	GetName = GetName,
+	GetMoney = GetMoney,
+	AddMoney = AddMoney,
+	RemoveMoney = RemoveMoney,
+	HasGroup = HasGroup,
+	OnLoad = OnLoad,
+	OnUnload = OnUnload,
+	GiveVehicle = GiveVehicle,
 })

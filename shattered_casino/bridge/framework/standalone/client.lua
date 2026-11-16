@@ -1,16 +1,22 @@
-Bridge.Add('framework', 'standalone', {
-    IsLoaded = function()
-        return NetworkIsPlayerActive(PlayerId())
-    end,
+local IsLoaded = function()
+	return NetworkIsPlayerActive(PlayerId())
+end
 
-    IsDead = function()
-        return IsEntityDead(PlayerPedId())
-    end,
+local IsDead = function()
+	return IsEntityDead(PlayerPedId())
+end
 
-    OnLoad = function(cb)
-        AddEventHandler('playerSpawned', function() cb() end)
-    end,
+local OnLoad = function(cb)
+	AddEventHandler('playerSpawned', function()
+		cb()
+	end)
+end
 
-    OnUnload = function()
-    end,
+local OnUnload = function() end
+
+BridgeAdd('framework', 'standalone', {
+	IsLoaded = IsLoaded,
+	IsDead = IsDead,
+	OnLoad = OnLoad,
+	OnUnload = OnUnload,
 })

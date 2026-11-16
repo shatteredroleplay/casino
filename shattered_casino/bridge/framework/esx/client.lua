@@ -2,29 +2,42 @@ local ESX
 local dead = false
 
 local core = function()
-    ESX = ESX or exports.es_extended:getSharedObject()
-    return ESX
+	ESX = ESX or exports.es_extended:getSharedObject()
+	return ESX
 end
 
-AddEventHandler('esx:onPlayerDeath', function() dead = true end)
-AddEventHandler('esx:onPlayerSpawn', function() dead = false end)
+AddEventHandler('esx:onPlayerDeath', function()
+	dead = true
+end)
+AddEventHandler('esx:onPlayerSpawn', function()
+	dead = false
+end)
 
-Bridge.Add('framework', 'esx', {
-    resource = 'es_extended',
+local IsLoaded = function()
+	return core().IsPlayerLoaded() == true
+end
 
-    IsLoaded = function()
-        return core().IsPlayerLoaded() == true
-    end,
+local IsDead = function()
+	return dead or IsEntityDead(PlayerPedId())
+end
 
-    IsDead = function()
-        return dead or IsEntityDead(PlayerPedId())
-    end,
+local OnLoad = function(cb)
+	RegisterNetEvent('esx:playerLoaded', function()
+		cb()
+	end)
+end
 
-    OnLoad = function(cb)
-        RegisterNetEvent('esx:playerLoaded', function() cb() end)
-    end,
+local OnUnload = function(cb)
+	RegisterNetEvent('esx:onPlayerLogout', function()
+		cb()
+	end)
+end
 
-    OnUnload = function(cb)
-        RegisterNetEvent('esx:onPlayerLogout', function() cb() end)
-    end,
+BridgeAdd('framework', 'esx', {
+	resource = 'es_extended',
+
+	IsLoaded = IsLoaded,
+	IsDead = IsDead,
+	OnLoad = OnLoad,
+	OnUnload = OnUnload,
 })

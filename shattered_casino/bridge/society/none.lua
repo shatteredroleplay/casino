@@ -1,5 +1,7 @@
-Bridge.Add('society', 'none', {
-    Deposit = function()
-        return true
-    end,
+local Deposit = function()
+	return true
+end
+
+BridgeAdd('society', 'none', {
+	Deposit = Deposit,
 })
